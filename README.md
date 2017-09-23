@@ -17,7 +17,7 @@ CTF-pwn-tips
 * [Hijack hook function](#hijack-hook-function)
 * [Use printf to trigger malloc and free](#use-printf-to-trigger-malloc-and-free)
 * [Use execveat to open a shell](#use-execveat-to-open-a-shell)
-
+* [Finding libc address](#finding-libc-base-address)
 
 ## Overflow
 
@@ -349,9 +349,7 @@ E.g.
 * ebx is the address of `rw-p` area of libc
 * [esp+0x34] == NULL
 
-How can we get these constraints? Here is an useful tool [one_gadget](https://github.com/david942j/one_gadget) !!!!
-
-So if we can satisfy those constraints, we can get the shell more easily.
+[This one_gadget tool](https://github.com/david942j/one_gadget) finds one-gadgets and the constraints for each. There's a good chance that one of the gadgets will already have its constraints satisfied, making the exploit much simpler.  
 
 ## Hijack hook function
 
@@ -457,7 +455,6 @@ More details:
 * [__builtin_expect](https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html)
 * [THREAD_GETMEM](https://code.woboq.org/userspace/glibc/sysdeps/x86_64/nptl/tls.h.html#_M/THREAD_GETMEM)
 
-
 ### conclusion
 
 * The minimum size of width to trigger `malloc` & `free` is 65537 most of the time.
@@ -479,3 +476,82 @@ According to its [man page](http://man7.org/linux/man-pages/man2/execveat.2.html
 > If pathname is absolute, then dirfd is ignored.
 
 Hence, if we make `pathname` point to `"/bin/sh"`, and set `argv`, `envp` and `flags` to 0, we can still get a shell whatever the value of `dirfd`.
+
+### Finding libc base address
+
+If you have a stack leak, chances are something on the stack will be a libc address at a constant offset. Do this with ASLR turned off:
+
+`info proc mappings` will tell you where the heap, libc, etc. are mapped in memory.
+
+```
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset objfile
+            0x400000           0x407000     0x7000        0x0 /mnt/hgfs/raywang/Dropbox (MIT)/CTFs/CSAW2017/zone
+            0x606000           0x607000     0x1000     0x6000 /mnt/hgfs/raywang/Dropbox (MIT)/CTFs/CSAW2017/zone
+            0x607000           0x608000     0x1000     0x7000 /mnt/hgfs/raywang/Dropbox (MIT)/CTFs/CSAW2017/zone
+            0xae4000           0xb16000    0x32000        0x0 [heap]
+      0x7f7da716b000     0x7f7da726e000   0x103000        0x0 /lib/x86_64-linux-gnu/libm-2.24.so
+      0x7f7da726e000     0x7f7da746d000   0x1ff000   0x103000 /lib/x86_64-linux-gnu/libm-2.24.so
+      0x7f7da746d000     0x7f7da746e000     0x1000   0x102000 /lib/x86_64-linux-gnu/libm-2.24.so
+      0x7f7da746e000     0x7f7da746f000     0x1000   0x103000 /lib/x86_64-linux-gnu/libm-2.24.so
+      0x7f7da746f000     0x7f7da7602000   0x193000        0x0 /lib/x86_64-linux-gnu/libc-2.24.so
+      0x7f7da7602000     0x7f7da7802000   0x200000   0x193000 /lib/x86_64-linux-gnu/libc-2.24.so
+      0x7f7da7802000     0x7f7da7806000     0x4000   0x193000 /lib/x86_64-linux-gnu/libc-2.24.so
+      0x7f7da7806000     0x7f7da7808000     0x2000   0x197000 /lib/x86_64-linux-gnu/libc-2.24.so
+      0x7f7da7808000     0x7f7da780c000     0x4000        0x0
+      0x7f7da780c000     0x7f7da7822000    0x16000        0x0 /lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7f7da7822000     0x7f7da7a21000   0x1ff000    0x16000 /lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7f7da7a21000     0x7f7da7a22000     0x1000    0x15000 /lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7f7da7a22000     0x7f7da7a23000     0x1000    0x16000 /lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7f7da7a23000     0x7f7da7b93000   0x170000        0x0 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+      0x7f7da7b93000     0x7f7da7d93000   0x200000   0x170000 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+      0x7f7da7d93000     0x7f7da7d9d000     0xa000   0x170000 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+      0x7f7da7d9d000     0x7f7da7d9f000     0x2000   0x17a000 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+      0x7f7da7d9f000     0x7f7da7da2000     0x3000        0x0
+      0x7f7da7da2000     0x7f7da7dc5000    0x23000        0x0 /lib/x86_64-linux-gnu/ld-2.24.so
+      0x7f7da7f95000     0x7f7da7f99000     0x4000        0x0
+      0x7f7da7fbe000     0x7f7da7fbf000     0x1000        0x0 /dev/zero (deleted)
+      0x7f7da7fbf000     0x7f7da7fc0000     0x1000        0x0 /dev/zero (deleted)
+      0x7f7da7fc0000     0x7f7da7fc1000     0x1000        0x0 /dev/zero (deleted)
+      0x7f7da7fc1000     0x7f7da7fc2000     0x1000        0x0 /dev/zero (deleted)
+      0x7f7da7fc2000     0x7f7da7fc5000     0x3000        0x0
+      0x7f7da7fc5000     0x7f7da7fc6000     0x1000    0x23000 /lib/x86_64-linux-gnu/ld-2.24.so
+      0x7f7da7fc6000     0x7f7da7fc7000     0x1000    0x24000 /lib/x86_64-linux-gnu/ld-2.24.so
+      0x7f7da7fc7000     0x7f7da7fc8000     0x1000        0x0
+      0x7ffdee783000     0x7ffdee7a4000    0x21000        0x0 [stack]
+      0x7ffdee7f0000     0x7ffdee7f2000     0x2000        0x0 [vvar]
+      0x7ffdee7f2000     0x7ffdee7f4000     0x2000        0x0 [vdso]
+  0xffffffffff600000 0xffffffffff601000     0x1000        0x0 [vsyscall]
+```
+
+Subtract the libc base address from the leaked libc address to get a constant offset. Now, when you run with ASLR turned on, subtract the offset from the leak to get the base address.
+
+#### Finding offsets
+There's many ways to find offsets of strings/search libc.
+
+If you have `pwndbg`, you can search memory with `search /bin/sh`.
+
+In pwntools, `hex(next(l.search("/bin/sh")))`.
+
+### Basic tips for starting out on a binary
+Turn ASLR off while you investigate a binary with GDB.
+
+```
+echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+```
+
+If a heap problem, point `voltron` memory view at the heap, so you can see how it changes when you allocate data. If you want to quickly locate a chunk that you're interested in, write AAAAAAAAAAA to it and `search AAAAAAAAA` in pwndbg.
+
+### Pwntools
+
+To attach gdb,
+
+```
+gdb.attach(process, '''
+set disassembly-flavor intel
+set height 0
+b *0x40104f
+c
+''')
+```
