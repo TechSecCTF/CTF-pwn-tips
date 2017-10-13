@@ -6,6 +6,7 @@ CTF-pwn-tips
 * [Overflow](#overflow)
 * [Find string in gdb](#find-string-in-gdb)
 * [Binary Service](#binary-service)
+* [Interact with remote shell after pwning](#remote-shell-in-nc)
 * [Find specific function offset in libc](#find-specific-function-offset-in-libc)
 * [Find '/bin/sh' or 'sh' in library](#find-binsh-or-sh-in-library)
 * [Leak stack address](#leak-stack-address)
@@ -149,6 +150,18 @@ Found 2 results, display max 2 items:
    libc : 0x7ffff7dd33b8 --> 0x7fffffffe1cd ("/home/naetw/CTF/seccon2016/check/checker")
 [stack] : 0x7fffffffde28 --> 0x7fffffffe1cd ("/home/naetw/CTF/seccon2016/check/checker")
 ```
+
+## Remote shell in nc
+
+Sometimes you're working with `nc` instead of pwntools for whatever reason (maybe it's a pain to install on whatever machine you're working on), and you successfully trigger `/bin/sh` on your remote target. How do you actually interact with the remote shell through `nc`?
+
+Here's how:
+
+```sh
+(python -c "import base64; print 'a'*52+'\xbe\xba\xfe\xca'" ; cat -) | nc pwnable.kr 9000
+```
+
+How this works: you pipe everything within the parantheses over the socket to the target. The first thing you send over is your python payload, and all subsequent things are determined by stdin (via `cat -`).
 
 ## Binary Service
 
