@@ -22,7 +22,7 @@ def change_ld(binary, ld):
             if size <= len(ld):
                 log.failure("Failed to change PT_INTERP from {} to {}".format(data, ld))
                 return None
-            binary.write(addr, ld.ljust(size, '\0'))
+            binary.write(addr, ld.ljust(size, '\0').encode())
             if not os.access('/tmp/pwn', os.F_OK): os.mkdir('/tmp/pwn')
             path = '/tmp/pwn/{}_debug'.format(os.path.basename(binary.path))
             if os.access(path, os.F_OK): 
@@ -45,15 +45,15 @@ Ex. If you want to LD_PRELOAD libc-2.27.so, you will need ld-2.27.so. See `glibc
 or you can build libc.so and ld.so from glibc source at http://ftp.gnu.org/gnu/libc/
 
 Then run 
-`python change-ld.py <elf binary> /full/path/to/libc-2.27.so`
+`python change-ld.py <elf binary> /full/path/to/ld-2.27.so`
 
-The full path to `libc-2.27.so` cannot be greater than 30 characters or so. Copy the ld.so over to /tmp/ if the script fails to patch the binary.
+The full path to `ld-2.27.so` cannot be greater than 30 characters or so. Copy the ld.so over to /tmp/ if the script fails to patch the binary.
 
 This will copy the patched binary to the current directory. You can then LD_PRELOAD the new libc as you normally would.
 """
 
 if len(sys.argv) < 3:
-    print USAGE
+    print(USAGE)
     exit()
 
 change_ld(sys.argv[1], sys.argv[2])
